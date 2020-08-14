@@ -14,8 +14,9 @@ def loss_calculation(semantic, target):
     bs = semantic.size()[0]
     pix_num = 480 * 640
 
+    count = 2
     target = target.view(bs, -1).view(-1).contiguous()
-    semantic = semantic.view(bs, 2, pix_num).transpose(1, 2).contiguous().view(bs * pix_num, 2).contiguous()
+    semantic = semantic.view(bs, count, pix_num).transpose(1, count).contiguous().view(bs * pix_num, count).contiguous()
     semantic_loss = CEloss(semantic, target)
 
     return semantic_loss

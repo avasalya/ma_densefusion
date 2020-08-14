@@ -18,6 +18,7 @@ class SegDataset(data.Dataset):
         self.use_noise = use_noise
         self.root = root_dir
         input_file = open(self.root +txtlist)
+        print("path to test and train txt..", self.root + txtlist)
         while 1:
             input_line = input_file.readline()
             if not input_line:
@@ -37,7 +38,7 @@ class SegDataset(data.Dataset):
         index = random.randint(0, self.data_len - 10)
 
         label = np.array(Image.open('{0}/mask/{1}.png'.format(self.root, self.path[index])))
-        label = (label-label.min()) / (label.max() -label.min())
+        label = (label-label.min()) / (label.max() -label.min()) #normalization
         if not self.use_noise:
             rgb = np.array(Image.open('{0}/rgb/{1}.png'.format(self.root, self.path[index])).convert("RGB"))
         else:
