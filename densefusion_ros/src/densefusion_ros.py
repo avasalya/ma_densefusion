@@ -150,7 +150,7 @@ class pose_estimation:
         #cv2.rectangle(rgb_original,(cmin,rmin), (cmax,rmax) , (0,255,0),2)
         #cv2.imwrite('depth.png', depth)          #save depth image
 
-        mask_depth = ma.getmaskarray(ma.masked_not_equal(depth,0))
+        mask_depth = ma.getmasksarray(ma.masked_not_equal(depth,0))
         mask_label = ma.getmaskarray(ma.masked_equal(pred, np.array(255)))
         mask = mask_depth * mask_label
 

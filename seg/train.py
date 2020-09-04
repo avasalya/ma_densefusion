@@ -26,11 +26,11 @@ from utils import setup_logger
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', default='/home/aist/ma_densefusion/seg/segmentation/', help="dataset root dir")
 parser.add_argument('--batch_size', default=10, help="batch size")
-parser.add_argument('--n_epochs', default=100, help="epochs to train")
+parser.add_argument('--n_epochs', default=500, help="epochs to train")
 parser.add_argument('--workers', type=int, default=10, help='number of data loading workers')
 parser.add_argument('--lr', default=0.0001, help="learning rate")
 parser.add_argument('--logs_path', default='logs/', help="path to save logs")
-parser.add_argument('--model_save_path', default='/home/aist/ma_densefusion/trained_models/', help="path to save models")
+parser.add_argument('--model_save_path', default='/home/aist/ma_densefusion/trained_models/02/', help="path to save models")
 parser.add_argument('--log_dir', default='logs/', help="path to save logs")
 parser.add_argument('--resume_model', default='', help="resume model name")
 opt = parser.parse_args()
@@ -39,9 +39,9 @@ if __name__ == '__main__':
     opt.manualSeed = random.randint(1, 10000)
     random.seed(opt.manualSeed)
     torch.manual_seed(opt.manualSeed)
-    dataset = SegDataset(opt.dataset_root, 'train.txt', True, 5000)  # flansch 341   schaltgabel 338   stift 342
+    dataset = SegDataset(opt.dataset_root, 'train.txt', True, 15000)  # flansch 341   schaltgabel 338   stift 342
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=True, num_workers=int(opt.workers))
-    test_dataset = SegDataset(opt.dataset_root, 'test.txt', False, 1000)
+    test_dataset = SegDataset(opt.dataset_root, 'test.txt', False, 4000)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=int(opt.workers))
 
     print(len(dataset), len(test_dataset))

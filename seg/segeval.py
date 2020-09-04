@@ -16,8 +16,8 @@ path = '/home/aist/ma_densefusion/'
 
 model = segnet()
 model.cuda()
-# model.load_state_dict(torch.load(path + 'trained_models/seg_model_34_0.00197136635685456.pth'))
-model.load_state_dict(torch.load(path + 'trained_models/seg_model_39_0.0014654285855649504.pth'))
+# model.load_state_dict(torch.load(path + 'trained_models/seg_model_96_0.0005561994192357816.pth'))
+model.load_state_dict(torch.load(path + 'trained_models/02/seg_model_498_0.00011372075986017194.pth'))
 
 # print(model)
 model.eval()
