@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 '''
-This ros node subscribes to two camera topics: '/camera/color/image_raw' and 
-'/camera/aligned_depth_to_color/image_raw' in a synchronized way. It then runs 
+This ros node subscribes to two camera topics: '/camera/color/image_raw' and
+'/camera/aligned_depth_to_color/image_raw' in a synchronized way. It then runs
 semantic segmentation and pose estimation with trained models using DenseFusion
-(https://github.com/j96w/DenseFusion). The whole code structure is adapted from: 
+(https://github.com/j96w/DenseFusion). The whole code structure is adapted from:
 (http://wiki.ros.org/rospy_tutorials/Tutorials/WritingImagePublisherSubscriber)
 '''
 
@@ -13,13 +13,13 @@ import cv2                                                               # you m
 import time                                                              # add "from functools import reduce" in file /opt/ros/kinectic/lib/python2.7/dist-packages/
 import rospy                                                             # message_filters/__init__.py
 import copy
-import argparse                                                             
+import argparse
 import numpy as np
-import numpy.ma as ma 
+import numpy.ma as ma
 import message_filters
 from sensor_msgs.msg import Image
 
-import time 
+import time
 import torch
 #from segnet import SegNet as segnet                #uncomment if we are using pruned version of segnet
 from segnet_original import SegNet as segnet      #uncomment if we are using original version of segnet
@@ -58,7 +58,7 @@ def get_bbox(bbox):
     if bbx[2] < 0:
         bbx[2] = 0
     if bbx[3] >= 640:
-        bbx[3] = 639                
+        bbx[3] = 639
     rmin, rmax, cmin, cmax = bbx[0], bbx[1], bbx[2], bbx[3]
     r_b = rmax - rmin
     for tt in range(len(border_list)):
@@ -107,12 +107,12 @@ class pose_estimation:
         self.object_index = object_index_
         self.scaled = scaled_
 
-        self.cam_cx = 315.2859903333336 
+        self.cam_cx = 315.2859903333336
         self.cam_cy = 244.88168334960938
         self.cam_fx = 616.0936279296875
         self.cam_fy = 616.29443359375
 
-        self.xmap = np.array([[j for i in range(640)] for j in range(480)]) 
+        self.xmap = np.array([[j for i in range(640)] for j in range(480)])
         self.ymap = np.array([[i for i in range(640)] for j in range(480)])
 
         #synchronized rgb and depth messages http://wiki.ros.org/message_filters
@@ -142,7 +142,7 @@ class pose_estimation:
         pred = np.transpose(pred, (1, 2, 0))  # (CxHxW)->(HxWxC)
         #print(pred.shape)
 
-        #ret, threshold = cv2.threshold(pred.cpu().numpy(), 1, 255, cv2.THRESH_BINARY)    #pred is already binary, therefore, this line is unnecessary 
+        #ret, threshold = cv2.threshold(pred.cpu().numpy(), 1, 255, cv2.THRESH_BINARY)    #pred is already binary, therefore, this line is unnecessary
         contours, hierarchy = cv2.findContours(np.uint8(pred),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnt = max(contours, key=cv2.contourArea)
         x,y,w,h = cv2.boundingRect(cnt)
@@ -161,11 +161,11 @@ class pose_estimation:
 
         choose = mask[rmin:rmax, cmin:cmax].flatten().nonzero()[0]
 
-        #print("length of choose is :{0}".format(len(choose))) 
+        #print("length of choose is :{0}".format(len(choose)))
         if len(choose) == 0:
             cc = torch.LongTensor([0])
             return(cc, cc, cc, cc, cc, cc)
-        
+
         if len(choose) > num_points:
             c_mask = np.zeros(len(choose), dtype=int)
             c_mask[:num_points] = 1  # if number of object pixels are bigger than 500, we select just 500
@@ -196,7 +196,7 @@ class pose_estimation:
         points = Variable(points).cuda().unsqueeze(0)
         choose = Variable(choose).cuda().unsqueeze(0)
         idx = Variable(idx).cuda().unsqueeze(0)
- 
+
         pred_r, pred_t, pred_c, emb = self.estimator(img, points, choose, idx)
         pred_r = pred_r / torch.norm(pred_r, dim=2).view(1, num_points, 1)
         pred_c = pred_c.view(bs, num_points)
@@ -207,13 +207,13 @@ class pose_estimation:
         my_t = (points.view(bs * num_points, 1, 3) + pred_t)[which_max[0]].view(-1).cpu().data.numpy()
         my_pred = np.append(my_r, my_t)
 
-        
+
         for ite in range(0, iteration):
             T = Variable(torch.from_numpy(my_t.astype(np.float32))).cuda().view(1, 3).repeat(num_points, 1).contiguous().view(1, num_points, 3)
             my_mat = quaternion_matrix(my_r)
             R = Variable(torch.from_numpy(my_mat[:3, :3].astype(np.float32))).cuda().view(1, 3, 3)
             my_mat[0:3, 3] = my_t
-            
+
             new_points = torch.bmm((points - T), R).contiguous()
             pred_r, pred_t = self.refiner(new_points, emb, idx)
             pred_r = pred_r.view(1, 1, -1)
@@ -251,7 +251,7 @@ class pose_estimation:
         p5 = (int((target[5][0]/ target[5][2])*self.cam_fx + self.cam_cx),  int((target[5][1]/ target[5][2])*self.cam_fy + self.cam_cy))
         p6 = (int((target[6][0]/ target[6][2])*self.cam_fx + self.cam_cx),  int((target[6][1]/ target[6][2])*self.cam_fy + self.cam_cy))
         p7 = (int((target[7][0]/ target[7][2])*self.cam_fx + self.cam_cx),  int((target[7][1]/ target[7][2])*self.cam_fy + self.cam_cy))
-        
+
         cv2.line(rgb_original, p0,p1,(255,255,255), 2)
         cv2.line(rgb_original, p0,p3,(255,255,255), 2)
         cv2.line(rgb_original, p0,p4,(255,255,255), 2)
@@ -264,22 +264,22 @@ class pose_estimation:
         cv2.line(rgb_original, p4,p7,(255,255,255), 2)
         cv2.line(rgb_original, p5,p6,(255,255,255), 2)
         cv2.line(rgb_original, p6,p7,(255,255,255), 2)
-        
+
         #print('estimated rotation is :{0}'.format(my_r))
         #print('estimated translation is :{0}'.format(my_t))
 
         #time2 = time.time()
         #print('inference time is :{0}'.format(time2-time1))
         cv2.imshow('rgb', cv2.cvtColor(rgb_original, cv2.COLOR_BGR2RGB))  # OpenCV uses BGR model
-        cv2.waitKey(1) # pass any integr except 0, as 0 will freeze the display windows 
+        cv2.waitKey(1) # pass any integr except 0, as 0 will freeze the display windows
 
 
 def main(args):
     seg_model = segnet()
     seg_model.cuda()
 
-    #seg_model.load_state_dict(torch.load('./segschaltgabel.pth'))     #uncomment if we are using the original segnet 
-    #seg_model.load_state_dict(torch.load('./schaltgabel_pruned.pth')) 
+    #seg_model.load_state_dict(torch.load('./segschaltgabel.pth'))     #uncomment if we are using the original segnet
+    #seg_model.load_state_dict(torch.load('./schaltgabel_pruned.pth'))
     #seg_model.load_state_dict(torch.load('./stift_pruned.pth'))
     #seg_model.load_state_dict(torch.load('./flansch_pruned.pth'))
 
@@ -292,16 +292,16 @@ def main(args):
     elif opt.model == 'schaltgabel':
         seg_model.load_state_dict(torch.load('./segschaltgabel.pth'))
         #seg_model.load_state_dict(torch.load('./schaltgabel_pruned.pth'))
-        idx = 1 
+        idx = 1
         scaled = np.array([[-54.7478, -16.7500, 23], [-54.7478,-16.7500,0],[54.7478,-16.7500,0],[54.7478,-16.7500,23],
-                           [-54.7478, 130.85, 23], [-54.7478,130.85,0],[54.7478,130.85,0],[54.7478,130.85,23]]) /1000     #schaltgabel_3d_bbox 
+                           [-54.7478, 130.85, 23], [-54.7478,130.85,0],[54.7478,130.85,0],[54.7478,130.85,23]]) /1000     #schaltgabel_3d_bbox
     else :
         #seg_model.load_state_dict(torch.load('./stift_pruned.pth'))
         seg_model.load_state_dict(torch.load('./segstift.pth'))
         idx = 2
         scaled = np.array([[-20,-35,19.9878],[-20,-35,-19.9878],[20,-35,-19.9878],[20,-35,19.9878],
-                          [-20,87,19.9878],[-20,87,-19.9878],[20,87,-19.9878],[20,87,19.9878]])/ 1000                     #stift_3d_bbox 
-       
+                          [-20,87,19.9878],[-20,87,-19.9878],[20,87,-19.9878],[20,87,19.9878]])/ 1000                     #stift_3d_bbox
+
 
     seg_model.eval()
     estimator = PoseNet(num_points, num_objects)
@@ -314,7 +314,7 @@ def main(args):
     refiner.eval()
 
 
-    pe = pose_estimation(seg_model, estimator, refiner, idx, scaled) 
+    pe = pose_estimation(seg_model, estimator, refiner, idx, scaled)
     rospy.init_node('pose_estimation', anonymous= True)
     try:
         rospy.spin()
